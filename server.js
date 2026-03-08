@@ -6,6 +6,7 @@ const { initwhatsapp } = require('./src/services/whatsapp.service');
 const port = process.env.PORT || 5000;
 const setupSocket = require('./src/sockets/socket');
 const errorHandler = require('./src/middlewares/errorHandler');
+const messageRoutes = require('./src/routes/message.routes');
 
 dotenv.config();
 const app = express();
@@ -24,6 +25,9 @@ initwhatsapp(io);
 app.get("/", (req, res) => {
     res.sendFile(path.join(path.resolve(), "public/index.html"));
 });
+
+// API routes
+app.use('/api', messageRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

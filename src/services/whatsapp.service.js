@@ -42,6 +42,7 @@ const initwhatsapp = (io) => {
         client.initialize();
     });
 
+
     client.initialize();
 
     return client;
@@ -49,11 +50,21 @@ const initwhatsapp = (io) => {
 }
 
 const sendMessage = async (number, message) => {
-    if (!client || state !== 'ready') {
-        throw new Error('WhatsApp client is not ready');
+    try {
+        if (!client || state !== 'ready') {
+            throw new Error('WhatsApp client is not ready');
+        }
+        // check wrong number
+        const numberId = await client.getNumberId(number);
+        if (!numberId) {
+            throw new Error('Invalid phone number');
+        }
+        const chatId = `${number}@c.us`;
+        return await client.sendMessage(chatId, message);
+    } catch (error) {
+        console.error('Error sending message:', error.message || error);
+        throw error;
     }
-    const chatId = `${number}@c.us`;
-    return await client.sendMessage(chatId, message);
 }
 
 const getState = () => {
