@@ -2,7 +2,7 @@ const { Server } = require("socket.io");
 const { getState, lastQr } = require("../services/whatsapp.service");
 
 function setupSocket(server) {
-    const io = new Server(server, { cors: { origin: "*" } });
+    const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
     io.on("connection", (socket) => {
         console.log("User connected:", socket.id);
