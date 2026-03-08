@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qr Code</title>
+</head>
+
+<body>
+    <section>
+        <h1>WhatsApp QR Login</h1>
+        <p id="instructions">Scan the QR code with your WhatsApp mobile app to login.</p>
+        <div id="qr"></div>
+        <div id="status">Initializing...</div>
+    </section>
+
+    <!-- Socket.IO client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // connect to backend Socket.IO
+
+        const qrContainer = document.getElementById("qr");
+        const statusContainer = document.getElementById("status");
+        const instructionsContainer = document.getElementById("instructions");
+
+        socket.on("qr", (qrString) => {
+            // Render QR as an image
+            qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}" />`;
+            statusContainer.textContent = "Scan the QR code with WhatsApp";
+        });
+
+        // Listen for ready/authenticated/failure events
+        socket.on("authenticated", () => {
+            statusContainer.textContent = "Authenticated! Please wait...";
+        });
+
+        socket.on("ready", () => {
+            statusContainer.textContent = "WhatsApp is ready! You can send messages now.";
+            qrContainer.innerHTML = ""; // Clear QR code once authenticated
+            instructionsContainer.textContent = ""; // Clear instructions after ready
+        });
+
+        socket.on("auth_failure", () => {
+            statusContainer.textContent = "Authentication failed. Please restart server.";
+        });
+
+        socket.on("status", (state) => {
+            if (state === "ready") {
+                statusContainer.textContent = "Already connected! You can send messages.";
+                qrContainer.innerHTML = "";
+                instructionsContainer.textContent = "";
+            } else if (state === "authenticated") {
+                statusContainer.textContent = "Authenticated! Please wait...";
+            } else if (state === "waiting_for_qr") {
+                statusContainer.textContent = "Waiting for QR scan...";
+            } else {
+                statusContainer.textContent = `Status: ${state}`;
+            }
+        });
+    </script>
+</body>
+
+</html>
