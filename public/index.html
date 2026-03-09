@@ -16,6 +16,7 @@
     </section>
 
     <!-- Socket.IO client -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io(); // connect to backend Socket.IO
@@ -26,7 +27,10 @@
 
         socket.on("qr", (qrString) => {
             // Render QR as an image
-            qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}" />`;
+            qrContainer.innerHTML = "";
+            QRCode.toCanvas(qrString, { width: 200 }, function (error, canvas) {
+                if (!error) qrContainer.appendChild(canvas);
+            });
             statusContainer.textContent = "Scan the QR code with WhatsApp";
         });
 

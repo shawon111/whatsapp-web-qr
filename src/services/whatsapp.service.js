@@ -1,84 +1,93 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const logger = require('../utils/logger');
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const logger = require("../utils/logger");
 
 let client = null;
 let lastQr = null;
-let state = 'initializing';
+let state = "initializing";
 
-const initwhatsapp = (io) => {
+// Store all connected sockets 
+let connectedSockets = new Set();
+
+const initwhatsapp = () => {
     if (client) return client;
 
-    client = new Client({
-        authStrategy: new LocalAuth(),
-    })
+    client = new Client({ authStrategy: new LocalAuth() });
 
-    client.on('qr', (qr) => {
+    // QR event
+    client.on("qr", (qr) => {
         lastQr = qr;
-        state = 'waiting_for_qr';
-        logger.info('QR RECEIVED');
-        io.emit('qr', qr);
+        state = "waiting_for_qr";
+        logger.info("QR RECEIVED");
+
+        // Broadcast to all connected sockets
+        connectedSockets.forEach((socket) => socket.emit("qr", qr));
+        connectedSockets.forEach((socket) => socket.emit("status", state));
     });
 
-    client.on('authenticated', () => {
-        state = 'authenticated';
-        logger.info('Client is authenticated!');
-        io.emit('authenticated', 'Client is authenticated!');
+    client.on("authenticated", () => {
+        state = "authenticated";
+        logger.info("Client is authenticated!");
+        connectedSockets.forEach((socket) => socket.emit("authenticated"));
     });
 
-    client.on('ready', () => {
-        state = 'ready';
-        logger.info('Client is ready!');
-        io.emit('ready', 'Client is ready!');
+    client.on("ready", () => {
+        state = "ready";
+        logger.info("Client is ready!");
+        connectedSockets.forEach((socket) => socket.emit("ready"));
     });
 
-    client.on('auth_failure', (msg) => {
-        state = 'auth_failure';
-        logger.error('Authentication failure:', msg);
-        io.emit('auth_failure', 'Authentication failure');
+    client.on("auth_failure", (msg) => {
+        state = "auth_failure";
+        logger.error("Authentication failure:", msg);
+        connectedSockets.forEach((socket) => socket.emit("auth_failure"));
     });
 
-    client.on('disconnected', (reason) => {
-        state = 'disconnected';
-        logger.info('Client was logged out:', reason);
+    client.on("disconnected", (reason) => {
+        state = "disconnected";
+        logger.info("Client was logged out:", reason);
         client.initialize();
     });
 
-
     client.initialize();
-
     return client;
+};
 
-}
+const registerSocket = (socket) => {
+    connectedSockets.add(socket);
+
+    // Send current state
+    socket.emit("status", state);
+
+    // Send last QR 
+    if (state === "waiting_for_qr" && lastQr) {
+        socket.emit("qr", lastQr);
+    }
+
+    // Cleanup on disconnect
+    socket.on("disconnect", () => {
+        connectedSockets.delete(socket);
+    });
+};
 
 const sendMessage = async (number, message) => {
-    try {
-        if (!client || state !== 'ready') {
-            throw new Error('WhatsApp client is not ready');
-        }
-        // check wrong number
-        const numberId = await client.getNumberId(number);
-        if (!numberId) {
-            throw new Error('Invalid phone number');
-        }
-        const chatId = `${number}@c.us`;
-        
-        
-        const result = await client.sendMessage(chatId, message);
-        logger.info(`Message sent to ${number}`);
-        return result;
-    } catch (error) {
-        logger.error('Error sending message:', error.message || error);
-        throw error;
-    }
-}
+    if (!client || state !== "ready") throw new Error("WhatsApp client is not ready");
 
-const getState = () => {
-    return state;
-}
+    const numberId = await client.getNumberId(number);
+    if (!numberId) throw new Error("Invalid phone number");
+
+    const chatId = `${number}@c.us`;
+    const result = await client.sendMessage(chatId, message);
+    logger.info(`Message sent to ${number}`);
+    return result;
+};
+
+const getState = () => state;
+const getLastQr = () => lastQr;
 
 module.exports = {
     initwhatsapp,
     sendMessage,
     getState,
-    lastQr
+    getLastQr,
+    registerSocket,
 };
