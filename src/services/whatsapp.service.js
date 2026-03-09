@@ -1,4 +1,5 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const logger = require('../utils/logger');
 
 let client = null;
 let lastQr = null;
@@ -14,31 +15,31 @@ const initwhatsapp = (io) => {
     client.on('qr', (qr) => {
         lastQr = qr;
         state = 'waiting_for_qr';
-        console.log('QR RECEIVED', qr);
+        logger.info('QR RECEIVED', qr);
         io.emit('qr', qr);
     });
 
     client.on('authenticated', () => {
         state = 'authenticated';
-        console.log('Client is authenticated!');
+        logger.info('Client is authenticated!');
         io.emit('authenticated', 'Client is authenticated!');
     });
 
     client.on('ready', () => {
         state = 'ready';
-        console.log('Client is ready!');
+        logger.info('Client is ready!');
         io.emit('ready', 'Client is ready!');
     });
 
     client.on('auth_failure', (msg) => {
         state = 'auth_failure';
-        console.error('Authentication failure:', msg);
+        logger.error('Authentication failure:', msg);
         io.emit('auth_failure', 'Authentication failure');
     });
 
     client.on('disconnected', (reason) => {
         state = 'disconnected';
-        console.log('Client was logged out:', reason);
+        logger.info('Client was logged out:', reason);
         client.initialize();
     });
 
@@ -60,9 +61,13 @@ const sendMessage = async (number, message) => {
             throw new Error('Invalid phone number');
         }
         const chatId = `${number}@c.us`;
-        return await client.sendMessage(chatId, message);
+        
+        
+        const result = await client.sendMessage(chatId, message);
+        logger.info(`Message sent to ${number}`);
+        return result;
     } catch (error) {
-        console.error('Error sending message:', error.message || error);
+        logger.error('Error sending message:', error.message || error);
         throw error;
     }
 }
