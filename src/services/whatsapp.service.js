@@ -15,7 +15,7 @@ const initwhatsapp = (io) => {
     client.on('qr', (qr) => {
         lastQr = qr;
         state = 'waiting_for_qr';
-        logger.info('QR RECEIVED', qr);
+        logger.info('QR RECEIVED');
         io.emit('qr', qr);
     });
 
