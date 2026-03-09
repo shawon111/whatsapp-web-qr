@@ -7,6 +7,7 @@ const port = process.env.PORT || 5000;
 const setupSocket = require('./src/sockets/socket');
 const errorHandler = require('./src/middlewares/errorHandler');
 const messageRoutes = require('./src/routes/message.routes');
+const startQueueMonitor = require('./src/utils/queueMonitor');
 
 dotenv.config();
 const app = express();
@@ -21,6 +22,9 @@ const io = setupSocket(server);
 
 // Initialize WhatsApp client
 initwhatsapp(io);
+
+// monitor queeue
+startQueueMonitor();
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(path.resolve(), "public/index.html"));
