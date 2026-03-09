@@ -4,15 +4,8 @@ const sanitizeNumber = require("../utils/numberFormatter");
 
 const messageController = async (req, res, next) => {
     try {
-        const { number, message } = req.body;
-        if (!number || !message) {
-            throw new Error("Missing 'number' or 'message' in request body");
-        }
-        if (getState() !== 'ready') {
-            throw new Error("WhatsApp client is not ready");
-        }
-
-        const sanitizedNumber = sanitizeNumber(number);
+        const { message } = req.body;
+        const { sanitizedNumber } = req;
 
         // Send message 
         const result = await messageQueue.add(
